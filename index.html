@@ -2,11 +2,1688 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d0a1a">
+<meta name="description" content="Gem Quest: Crystal Kingdom - Match gems, build your kingdom">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gem Quest">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon.ico">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@700;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
 <title>Gem Quest: Crystal Kingdom</title>
+<style>
+/* ═══════════════════════════════════════════
+   VARIABLES & RESET
+═══════════════════════════════════════════ */
+:root {
+  --gold: #f5c842;
+  --gold2: #e8a020;
+  --gold3: #fde68a;
+  --dark: #0d0a1a;
+  --dark2: #120e20;
+  --panel: #1a1430;
+  --panel2: #221a3a;
+  --border: #3d2f6a;
+  --border2: #5a4490;
+  --text: #f0e8d0;
+  --muted: #8880a8;
+  --purple: #a855f7;
+  --cyan: #06b6d4;
+  --gem-r: #ef4444;
+  --gem-b: #3b82f6;
+  --gem-g: #22c55e;
+  --gem-y: #eab308;
+  --gem-p: #a855f7;
+  --gem-c: #06b6d4;
+  --board-size: min(96vw, 520px);
+  --cell: calc(var(--board-size) / 8);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; touch-action:manipulation; }
+html, body { height:100%; overflow:hidden; background:var(--dark); }
+body {
+  font-family:'Crimson Pro', Georgia, serif;
+  color:var(--text);
+  display:flex; flex-direction:column; align-items:center;
+  background-image:
+    radial-gradient(ellipse at 15% 15%, rgba(100,40,180,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 85%, rgba(20,80,160,0.14) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(60,20,100,0.08) 0%, transparent 70%);
+}
+
+/* ═══════════════════════════════════════════
+   LAYOUT WRAPPER
+═══════════════════════════════════════════ */
+#app {
+  width:100%; max-width:560px;
+  height:100vh; display:flex; flex-direction:column;
+  position:relative; overflow:hidden;
+}
+
+/* ═══════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════ */
+#header {
+  background:linear-gradient(135deg, #1e1438 0%, #2d1f55 50%, #1e1438 100%);
+  border-bottom:1px solid var(--border);
+  padding:10px 16px 8px;
+  display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0;
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  position:relative; z-index:10;
+}
+#title-block { display:flex; flex-direction:column; gap:1px; }
+#game-title {
+  font-family:'Cinzel Decorative', serif;
+  font-size:clamp(14px,3.5vw,20px);
+  color:var(--gold);
+  text-shadow:0 0 20px rgba(245,200,66,0.5), 0 0 40px rgba(245,200,66,0.2);
+  letter-spacing:1px; line-height:1;
+}
+#game-subtitle { font-size:clamp(8px,1.8vw,11px); color:var(--muted); letter-spacing:3px; text-transform:uppercase; }
+#header-stats { display:flex; gap:8px; }
+.hstat {
+  text-align:center;
+  background:rgba(0,0,0,0.35);
+  border:1px solid var(--border);
+  border-radius:8px; padding:4px 10px;
+  min-width:60px;
+}
+.hstat-label { font-size:7px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; font-family:'Cinzel',serif; }
+.hstat-val { font-family:'Cinzel',serif; font-size:clamp(13px,3vw,17px); color:var(--gold); font-weight:700; line-height:1.2; }
+#btn-auth {
+  background:linear-gradient(135deg,#4a2080,#6b21a8);
+  border:1px solid var(--border2); border-radius:8px;
+  padding:6px 12px; cursor:pointer;
+  font-family:'Cinzel',serif; font-size:10px; color:var(--gold);
+  letter-spacing:1px; transition:all 0.2s;
+}
+#btn-auth:hover { background:linear-gradient(135deg,#6b21a8,#a855f7); }
+
+/* ═══════════════════════════════════════════
+   PROGRESS BAR
+═══════════════════════════════════════════ */
+#progress-wrap {
+  background:var(--dark2);
+  border-bottom:1px solid var(--border);
+  padding:7px 14px;
+  display:flex; align-items:center; gap:10px;
+  flex-shrink:0;
+}
+#level-pill {
+  font-family:'Cinzel',serif; font-size:10px; color:var(--gold);
+  background:rgba(245,200,66,0.1); border:1px solid rgba(245,200,66,0.25);
+  border-radius:20px; padding:2px 10px; white-space:nowrap; flex-shrink:0;
+}
+#prog-bar-bg {
+  flex:1; height:8px; background:#0d0a1a; border-radius:6px;
+  border:1px solid var(--border); overflow:hidden;
+}
+#prog-bar-fill {
+  height:100%; border-radius:6px; width:0%;
+  background:linear-gradient(90deg,#6b21a8,#a855f7,#e879f9);
+  transition:width 0.5s cubic-bezier(.34,1.3,.64,1);
+  box-shadow:0 0 8px rgba(168,85,247,0.5);
+}
+#target-pill { font-size:9px; color:var(--muted); white-space:nowrap; flex-shrink:0; }
+
+/* ═══════════════════════════════════════════
+   LIVES + MOVES ROW
+═══════════════════════════════════════════ */
+#info-row {
+  background:linear-gradient(90deg,#160f28,#1e1438,#160f28);
+  border-bottom:1px solid var(--border);
+  padding:6px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0;
+}
+#lives-wrap { display:flex; align-items:center; gap:6px; }
+.life-heart { font-size:16px; transition:all 0.3s; }
+.life-heart.empty { opacity:0.2; filter:grayscale(1); }
+#lives-timer { font-size:9px; color:var(--muted); letter-spacing:1px; }
+#moves-wrap { display:flex; align-items:center; gap:6px; }
+#moves-num {
+  font-family:'Cinzel',serif; font-size:22px; color:var(--gold); font-weight:900;
+  text-shadow:0 0 12px rgba(245,200,66,0.4);
+  transition:color 0.3s, transform 0.15s;
+}
+#moves-num.low { color:#f87171; text-shadow:0 0 12px rgba(248,113,113,0.5); animation:pulse-red 1s infinite; }
+@keyframes pulse-red { 0%,100%{opacity:1}50%{opacity:0.6} }
+#moves-label { font-size:8px; color:var(--muted); letter-spacing:2px; text-transform:uppercase; }
+#streak-wrap { display:flex; align-items:center; gap:4px; }
+#streak-icon { font-size:16px; }
+#streak-count { font-family:'Cinzel',serif; font-size:13px; color:#fb923c; }
+#streak-label { font-size:8px; color:var(--muted); letter-spacing:1px; }
+
+/* ═══════════════════════════════════════════
+   BOARD
+═══════════════════════════════════════════ */
+#board-area {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  padding:8px; overflow:hidden; position:relative;
+}
+#board-bg {
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse at 30% 40%, rgba(100,40,180,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 60%, rgba(20,80,160,0.05) 0%, transparent 60%);
+}
+#board-wrap {
+  position:relative;
+  width:var(--board-size); height:var(--board-size);
+  background:linear-gradient(160deg,#1a1235,#120e22,#1a1235);
+  border:1px solid var(--border);
+  border-radius:16px;
+  box-shadow:0 0 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.04);
+  overflow:hidden;
+}
+#board-inner {
+  position:absolute; inset:8px;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  grid-template-rows:repeat(8,1fr);
+  gap:3px;
+}
+
+/* ═══════════════════════════════════════════
+   GEMS
+═══════════════════════════════════════════ */
+.gem {
+  border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:clamp(14px,3.2vw,22px);
+  cursor:pointer; position:relative; overflow:hidden;
+  border:1px solid rgba(255,255,255,0.1);
+  user-select:none; transition:transform 0.12s, box-shadow 0.15s;
+  will-change:transform;
+}
+.gem::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+  border-radius:inherit; pointer-events:none;
+}
+.gem-r { background:linear-gradient(145deg,#991b1b,#dc2626,#b91c1c); box-shadow:inset 0 1px 0 rgba(255,160,160,0.3),0 2px 8px rgba(220,38,38,0.25); }
+.gem-b { background:linear-gradient(145deg,#1e3a8a,#2563eb,#1d4ed8); box-shadow:inset 0 1px 0 rgba(150,180,255,0.3),0 2px 8px rgba(37,99,235,0.25); }
+.gem-g { background:linear-gradient(145deg,#14532d,#16a34a,#15803d); box-shadow:inset 0 1px 0 rgba(150,255,180,0.3),0 2px 8px rgba(22,163,74,0.25); }
+.gem-y { background:linear-gradient(145deg,#78350f,#d97706,#b45309); box-shadow:inset 0 1px 0 rgba(255,220,100,0.3),0 2px 8px rgba(217,119,6,0.25); }
+.gem-p { background:linear-gradient(145deg,#4c1d95,#7c3aed,#6d28d9); box-shadow:inset 0 1px 0 rgba(200,150,255,0.3),0 2px 8px rgba(124,58,237,0.25); }
+.gem-c { background:linear-gradient(145deg,#164e63,#0891b2,#0e7490); box-shadow:inset 0 1px 0 rgba(150,230,255,0.3),0 2px 8px rgba(8,145,178,0.25); }
+
+/* Gem states */
+.gem.selected {
+  transform:scale(1.15) translateY(-2px);
+  box-shadow:0 0 0 2px #fff, 0 0 20px rgba(255,255,255,0.5), 0 6px 20px rgba(0,0,0,0.4);
+  z-index:20;
+}
+.gem.hint-glow { animation:hint-pulse 0.5s ease-in-out 4; }
+@keyframes hint-pulse {
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.12) rotate(3deg); box-shadow:0 0 20px gold;}
+}
+.gem.matched { animation:gem-burst 0.35s forwards; }
+@keyframes gem-burst {
+  0%{transform:scale(1);opacity:1}
+  40%{transform:scale(1.4);opacity:0.7}
+  100%{transform:scale(0);opacity:0}
+}
+.gem.invalid { animation:gem-shake 0.3s; }
+@keyframes gem-shake {
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-5px)}
+  40%{transform:translateX(5px)}
+  60%{transform:translateX(-3px)}
+  80%{transform:translateX(3px)}
+}
+.gem.new-gem { animation:gem-drop 0.4s cubic-bezier(.34,1.5,.64,1) both; }
+@keyframes gem-drop {
+  from{transform:translateY(-40px) scale(0.6);opacity:0}
+  to{transform:translateY(0) scale(1);opacity:1}
+}
+/* Power gem */
+.gem.power-gem {
+  box-shadow:0 0 0 2px var(--gold), 0 0 15px var(--gold) !important;
+  animation:power-pulse 2s infinite;
+}
+@keyframes power-pulse {
+  0%,100%{box-shadow:0 0 0 2px var(--gold), 0 0 15px var(--gold)}
+  50%{box-shadow:0 0 0 2px var(--gold), 0 0 30px var(--gold), 0 0 50px rgba(245,200,66,0.3)}
+}
+/* Bomb gem */
+.gem.bomb-gem {
+  box-shadow:0 0 0 2px #f43f5e, 0 0 15px #f43f5e !important;
+  animation:bomb-pulse 1.5s infinite;
+}
+@keyframes bomb-pulse {
+  0%,100%{box-shadow:0 0 0 2px #f43f5e, 0 0 15px #f43f5e}
+  50%{box-shadow:0 0 0 2px #f43f5e, 0 0 30px #f43f5e}
+}
+
+/* ═══════════════════════════════════════════
+   COLORBLIND SHAPES OVERLAY
+═══════════════════════════════════════════ */
+.gem .cb-shape {
+  position:absolute; bottom:2px; right:3px;
+  font-size:8px; opacity:0.9; line-height:1;
+  display:none;
+}
+body.colorblind .gem .cb-shape { display:block; }
+
+/* ═══════════════════════════════════════════
+   FOOTER ACTIONS
+═══════════════════════════════════════════ */
+#footer {
+  background:linear-gradient(135deg,#1e1438,#2a1c50,#1e1438);
+  border-top:1px solid var(--border);
+  padding:8px 16px 12px;
+  display:flex; align-items:center; justify-content:space-around;
+  flex-shrink:0; gap:8px;
+}
+.action-btn {
+  background:linear-gradient(135deg,#2d1f55,#1e1438);
+  border:1px solid var(--border); border-radius:12px;
+  padding:8px 14px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  transition:all 0.2s; flex:1; max-width:90px;
+}
+.action-btn:hover,.action-btn:active {
+  background:linear-gradient(135deg,#4a2080,#2d1f55);
+  border-color:var(--border2);
+  transform:translateY(-1px);
+}
+.action-btn .btn-icon { font-size:18px; }
+.action-btn .btn-label {
+  font-family:'Cinzel',serif; font-size:8px; color:var(--gold);
+  letter-spacing:1px; text-transform:uppercase;
+}
+.action-btn .btn-count { font-size:8px; color:var(--muted); }
+
+/* ═══════════════════════════════════════════
+   SAGE ADVISOR
+═══════════════════════════════════════════ */
+#sage-wrap {
+  position:fixed; bottom:80px; right:12px;
+  z-index:50; display:flex; flex-direction:column; align-items:flex-end; gap:6px;
+  pointer-events:none;
+}
+#sage-bubble {
+  background:linear-gradient(135deg,#2d1f55ee,#1a1235ee);
+  border:1px solid var(--border2);
+  border-radius:16px 16px 4px 16px;
+  padding:10px 14px; max-width:200px;
+  font-size:12px; color:var(--text); line-height:1.5;
+  box-shadow:0 8px 30px rgba(0,0,0,0.5);
+  backdrop-filter:blur(10px);
+  opacity:0; transform:translateY(10px) scale(0.95);
+  transition:all 0.3s cubic-bezier(.34,1.3,.64,1);
+  pointer-events:none;
+}
+#sage-bubble.visible { opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+#sage-avatar {
+  width:48px; height:48px; border-radius:50%;
+  background:linear-gradient(135deg,#4c1d95,#7c3aed);
+  border:2px solid var(--gold);
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; cursor:pointer; pointer-events:auto;
+  box-shadow:0 0 20px rgba(124,58,237,0.4);
+  transition:transform 0.2s;
+  animation:sage-float 3s ease-in-out infinite;
+}
+@keyframes sage-float {
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-4px)}
+}
+#sage-avatar:hover { transform:scale(1.1); }
+#sage-loading { display:none; font-size:10px; color:var(--muted); text-align:center; }
+
+/* ═══════════════════════════════════════════
+   COMBO + SCORE FLOATS
+═══════════════════════════════════════════ */
+#combo-popup {
+  position:fixed; top:35%; left:50%; transform:translate(-50%,-50%);
+  font-family:'Cinzel Decorative',serif; font-size:clamp(24px,6vw,40px);
+  color:var(--gold); text-shadow:0 0 30px rgba(245,200,66,0.8);
+  pointer-events:none; z-index:200;
+  animation:comboAnim 0.9s forwards;
+}
+@keyframes comboAnim {
+  0%{opacity:0;transform:translate(-50%,-50%) scale(0.4)}
+  25%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}
+  70%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-70%) scale(0.9)}
+}
+.score-float {
+  position:fixed; font-family:'Cinzel',serif;
+  font-size:clamp(14px,3vw,20px); font-weight:700;
+  pointer-events:none; z-index:201;
+  animation:floatUp 1s forwards;
+}
+@keyframes floatUp {
+  from{opacity:1;transform:translateY(0)}
+  to{opacity:0;transform:translateY(-50px)}
+}
+.particle {
+  position:fixed; border-radius:50%; pointer-events:none; z-index:202;
+  animation:particleFly 0.7s ease-out forwards;
+}
+@keyframes particleFly {
+  from{opacity:1;transform:translate(0,0) scale(1)}
+  to{opacity:0;transform:translate(var(--tx),var(--ty)) scale(0)}
+}
+
+/* ═══════════════════════════════════════════
+   SCREEN SHAKE
+═══════════════════════════════════════════ */
+@keyframes screenShake {
+  0%,100%{transform:translate(0,0)}
+  20%{transform:translate(-4px,2px)}
+  40%{transform:translate(4px,-2px)}
+  60%{transform:translate(-3px,3px)}
+  80%{transform:translate(3px,-1px)}
+}
+#app.shake { animation:screenShake 0.3s; }
+
+/* ═══════════════════════════════════════════
+   OVERLAYS
+═══════════════════════════════════════════ */
+.overlay {
+  position:fixed; inset:0; z-index:300;
+  background:rgba(5,3,15,0.9);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:20px; backdrop-filter:blur(8px);
+  animation:fadeIn 0.25s;
+}
+.overlay.hidden { display:none; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.overlay-card {
+  background:linear-gradient(160deg,#2d1f55,#1a1030,#2d1f55);
+  border:1px solid var(--border); border-radius:20px;
+  padding:clamp(24px,5vw,40px) clamp(20px,6vw,48px);
+  text-align:center; width:100%; max-width:360px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.7), 0 0 60px rgba(100,40,180,0.1);
+  position:relative; overflow:hidden;
+}
+.overlay-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(245,200,66,0.3),transparent);
+}
+.overlay-icon { font-size:clamp(48px,12vw,72px); margin-bottom:8px; display:block; }
+.overlay-title {
+  font-family:'Cinzel Decorative',serif;
+  font-size:clamp(18px,4.5vw,26px); color:var(--gold);
+  text-shadow:0 0 20px rgba(245,200,66,0.5); letter-spacing:2px; margin-bottom:4px;
+}
+.overlay-sub { font-size:clamp(9px,2vw,12px); color:var(--muted); letter-spacing:3px; margin-bottom:16px; text-transform:uppercase; }
+.overlay-desc { font-size:clamp(12px,2.5vw,14px); color:#c4b8e0; line-height:1.8; margin-bottom:16px; }
+.stars-row { display:flex; justify-content:center; gap:6px; font-size:clamp(24px,6vw,32px); margin:10px 0; }
+.score-display { margin:10px 0; }
+.score-display .sd-label { font-size:9px; color:var(--muted); letter-spacing:3px; text-transform:uppercase; }
+.score-display .sd-val {
+  font-family:'Cinzel',serif; font-size:clamp(32px,8vw,48px);
+  color:var(--gold); font-weight:900;
+  text-shadow:0 0 20px rgba(245,200,66,0.4);
+}
+.big-btn {
+  width:100%; padding:clamp(12px,3vw,16px);
+  background:linear-gradient(135deg,#6b21a8,#a855f7);
+  border:none; border-radius:12px; cursor:pointer;
+  font-family:'Cinzel',serif; font-size:clamp(11px,2.5vw,14px);
+  color:#fff; letter-spacing:2px; font-weight:700;
+  box-shadow:0 4px 20px rgba(168,85,247,0.4);
+  transition:all 0.2s; margin-top:8px;
+}
+.big-btn:hover,.big-btn:active {
+  transform:translateY(-2px);
+  box-shadow:0 8px 30px rgba(168,85,247,0.6);
+}
+.big-btn.secondary {
+  background:transparent; border:1px solid var(--border);
+  color:var(--gold); box-shadow:none;
+  background:linear-gradient(135deg,#2d1f55,#1e1438);
+}
+.btn-divider { display:flex; align-items:center; gap:10px; margin:12px 0; }
+.btn-divider::before,.btn-divider::after { content:''; flex:1; height:1px; background:var(--border); }
+.btn-divider span { font-size:10px; color:var(--muted); letter-spacing:2px; }
+
+/* Auth form */
+.auth-input {
+  width:100%; padding:12px 14px; margin-top:8px;
+  background:rgba(0,0,0,0.3); border:1px solid var(--border);
+  border-radius:10px; color:var(--text);
+  font-family:'Crimson Pro',serif; font-size:15px;
+  outline:none; transition:border-color 0.2s;
+}
+.auth-input:focus { border-color:var(--border2); }
+.auth-input::placeholder { color:var(--muted); }
+.auth-msg { font-size:12px; margin-top:8px; color:var(--muted); }
+.auth-msg.success { color:#4ade80; }
+.auth-msg.error { color:#f87171; }
+
+/* Settings */
+.setting-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 0; border-bottom:1px solid rgba(61,47,106,0.4);
+  font-size:14px; color:var(--text);
+}
+.toggle-btn {
+  width:44px; height:24px; border-radius:12px;
+  border:none; cursor:pointer; position:relative;
+  background:var(--border); transition:background 0.3s;
+}
+.toggle-btn.on { background:var(--purple); }
+.toggle-btn::after {
+  content:''; position:absolute; top:3px; left:3px;
+  width:18px; height:18px; border-radius:50%; background:#fff;
+  transition:transform 0.3s;
+}
+.toggle-btn.on::after { transform:translateX(20px); }
+
+/* Leaderboard */
+.lb-row {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 12px; border-radius:8px; margin-bottom:4px;
+  background:rgba(0,0,0,0.2);
+}
+.lb-rank { font-family:'Cinzel',serif; font-size:14px; color:var(--gold); width:24px; }
+.lb-name { flex:1; font-size:14px; }
+.lb-score { font-family:'Cinzel',serif; font-size:13px; color:var(--purple); }
+.lb-row.me { background:rgba(100,40,180,0.15); border:1px solid var(--border); }
+
+/* Toast */
+#toast {
+  position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+  background:rgba(45,31,85,0.95); border:1px solid var(--border2);
+  border-radius:20px; padding:8px 20px;
+  font-size:13px; color:var(--text);
+  z-index:500; pointer-events:none;
+  opacity:0; transition:opacity 0.3s;
+  backdrop-filter:blur(10px);
+  white-space:nowrap;
+}
+#toast.show { opacity:1; }
+
+/* Stars bg animation */
+#stars-canvas {
+  position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.4;
+}
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════ */
+@media(min-width:600px) {
+  #app { border-left:1px solid var(--border); border-right:1px solid var(--border); }
+}
+@media(max-height:650px) {
+  #header { padding:6px 14px; }
+  .hstat { padding:3px 8px; }
+  #progress-wrap { padding:4px 12px; }
+  #info-row { padding:4px 14px; }
+  #footer { padding:6px 14px 8px; }
+  .action-btn { padding:6px 10px; }
+}
+</style>
 </head>
 <body>
-<h1>Gem Quest: Crystal Kingdom 💎</h1>
-<p>Coming soon...</p>
+
+<!-- Stars background canvas -->
+<canvas id="stars-canvas"></canvas>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="header">
+    <div id="title-block">
+      <div id="game-title">💎 GEM QUEST</div>
+      <div id="game-subtitle">Crystal Kingdom</div>
+    </div>
+    <div id="header-stats">
+      <div class="hstat">
+        <div class="hstat-label">Score</div>
+        <div class="hstat-val" id="score-el">0</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-label">Best</div>
+        <div class="hstat-val" id="best-el">0</div>
+      </div>
+    </div>
+    <button id="btn-auth" onclick="openAuth()">👤 Sign In</button>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="progress-wrap">
+    <div id="level-pill">LEVEL <span id="level-el">1</span></div>
+    <div id="prog-bar-bg"><div id="prog-bar-fill"></div></div>
+    <div id="target-pill">🏆 <span id="target-el">500</span></div>
+  </div>
+
+  <!-- INFO ROW -->
+  <div id="info-row">
+    <div id="lives-wrap">
+      <span class="life-heart" id="h1">❤️</span>
+      <span class="life-heart" id="h2">❤️</span>
+      <span class="life-heart" id="h3">❤️</span>
+      <span class="life-heart" id="h4">❤️</span>
+      <span class="life-heart" id="h5">❤️</span>
+      <span id="lives-timer"></span>
+    </div>
+    <div id="moves-wrap">
+      <div>
+        <div id="moves-num">20</div>
+        <div id="moves-label">Moves</div>
+      </div>
+    </div>
+    <div id="streak-wrap">
+      <span id="streak-icon">🔥</span>
+      <div>
+        <div id="streak-count">0</div>
+        <div id="streak-label">Streak</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOARD -->
+  <div id="board-area">
+    <div id="board-bg"></div>
+    <div id="board-wrap">
+      <div id="board-inner"></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div id="footer">
+    <button class="action-btn" onclick="requestHint()">
+      <span class="btn-icon">🔮</span>
+      <span class="btn-label">SAGE</span>
+      <span class="btn-count" id="hint-count">3 left</span>
+    </button>
+    <button class="action-btn" onclick="shuffleBoard()">
+      <span class="btn-icon">🔀</span>
+      <span class="btn-label">Shuffle</span>
+      <span class="btn-count">-2 moves</span>
+    </button>
+    <button class="action-btn" onclick="openLeaderboard()">
+      <span class="btn-icon">🏆</span>
+      <span class="btn-label">Ranks</span>
+      <span class="btn-count">Global</span>
+    </button>
+    <button class="action-btn" onclick="openSettings()">
+      <span class="btn-icon">⚙️</span>
+      <span class="btn-label">Settings</span>
+      <span class="btn-count"></span>
+    </button>
+  </div>
+</div>
+
+<!-- SAGE ADVISOR -->
+<div id="sage-wrap">
+  <div id="sage-bubble"></div>
+  <div id="sage-loading">thinking...</div>
+  <div id="sage-avatar" onclick="toggleSage()">🧙</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ════════════════════════════════
+     OVERLAYS
+════════════════════════════════ -->
+
+<!-- SPLASH -->
+<div class="overlay" id="overlay-splash">
+  <div class="overlay-card">
+    <span class="overlay-icon">👑</span>
+    <div class="overlay-title">GEM QUEST</div>
+    <div class="overlay-sub">Crystal Kingdom</div>
+    <div class="overlay-desc">
+      Match <strong style="color:var(--gold)">3+ gems</strong> to score<br>
+      Match <strong style="color:var(--gold)">4 in a row</strong> → Power Gem ✨<br>
+      Match <strong style="color:var(--gold)">5 or L-shape</strong> → Bomb 💣<br>
+      Chain combos for massive points!
+    </div>
+    <button class="big-btn" onclick="startGame()">⚔️ Begin Quest</button>
+    <button class="big-btn secondary" onclick="openAuth()" style="margin-top:8px">👤 Sign In to Save Progress</button>
+  </div>
+</div>
+
+<!-- LEVEL COMPLETE -->
+<div class="overlay hidden" id="overlay-win">
+  <div class="overlay-card">
+    <span class="overlay-icon">🎉</span>
+    <div class="overlay-title" id="win-title">Level Complete!</div>
+    <div class="overlay-sub" id="win-sub">CRYSTAL KINGDOM</div>
+    <div class="stars-row" id="win-stars"></div>
+    <div class="score-display">
+      <div class="sd-label">Score</div>
+      <div class="sd-val" id="win-score">0</div>
+    </div>
+    <button class="big-btn" onclick="nextLevel()">▶ Next Level</button>
+    <button class="big-btn secondary" onclick="startGame()">🔄 Replay</button>
+  </div>
+</div>
+
+<!-- GAME OVER -->
+<div class="overlay hidden" id="overlay-lose">
+  <div class="overlay-card">
+    <span class="overlay-icon">💀</span>
+    <div class="overlay-title">Quest Failed</div>
+    <div class="overlay-sub" id="lose-sub">SO CLOSE...</div>
+    <div class="score-display">
+      <div class="sd-label">Final Score</div>
+      <div class="sd-val" id="lose-score">0</div>
+    </div>
+    <button class="big-btn" onclick="startGame()">🔄 Try Again</button>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div class="overlay hidden" id="overlay-auth">
+  <div class="overlay-card">
+    <span class="overlay-icon">🔐</span>
+    <div class="overlay-title">Sign In</div>
+    <div class="overlay-sub">Save Your Progress</div>
+    <button class="big-btn" onclick="signInDiscord()" style="background:linear-gradient(135deg,#4752C4,#5865F2)">
+      🎮 Continue with Discord
+    </button>
+    <div class="btn-divider"><span>OR</span></div>
+    <input class="auth-input" type="email" id="auth-email" placeholder="your@email.com">
+    <button class="big-btn secondary" onclick="signInMagicLink()">✉️ Send Magic Link</button>
+    <div class="auth-msg" id="auth-msg"></div>
+    <button class="big-btn secondary" onclick="closeOverlay('overlay-auth')" style="margin-top:12px">← Back to Game</button>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="overlay hidden" id="overlay-settings">
+  <div class="overlay-card">
+    <span class="overlay-icon">⚙️</span>
+    <div class="overlay-title">Settings</div>
+    <div class="overlay-sub">CRYSTAL KINGDOM</div>
+    <div class="setting-row">
+      <span>🔊 Sound Effects</span>
+      <button class="toggle-btn on" id="toggle-sound" onclick="toggleSetting('sound')"></button>
+    </div>
+    <div class="setting-row">
+      <span>📳 Haptic Feedback</span>
+      <button class="toggle-btn on" id="toggle-haptic" onclick="toggleSetting('haptic')"></button>
+    </div>
+    <div class="setting-row">
+      <span>♿ Colorblind Mode</span>
+      <button class="toggle-btn" id="toggle-colorblind" onclick="toggleSetting('colorblind')"></button>
+    </div>
+    <div class="setting-row">
+      <span>✨ Particle Effects</span>
+      <button class="toggle-btn on" id="toggle-particles" onclick="toggleSetting('particles')"></button>
+    </div>
+    <div class="setting-row">
+      <span>🌙 Reduce Motion</span>
+      <button class="toggle-btn" id="toggle-motion" onclick="toggleSetting('motion')"></button>
+    </div>
+    <button class="big-btn" onclick="closeOverlay('overlay-settings')" style="margin-top:16px">✓ Done</button>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div class="overlay hidden" id="overlay-lb">
+  <div class="overlay-card">
+    <span class="overlay-icon">🏆</span>
+    <div class="overlay-title">Leaderboard</div>
+    <div class="overlay-sub">CRYSTAL CHAMPIONS</div>
+    <div id="lb-list" style="margin:12px 0;max-height:280px;overflow-y:auto;"></div>
+    <button class="big-btn" onclick="closeOverlay('overlay-lb')">← Back</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  CONFIG — Replace with your actual keys
+// ═══════════════════════════════════════════
+const CONFIG = {
+  SUPABASE_URL: 'YOUR_SUPABASE_URL',
+  SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+  GROQ_KEY: 'YOUR_GROQ_KEY',
+  GEMINI_KEY: 'YOUR_GEMINI_KEY',
+};
+
+// ═══════════════════════════════════════════
+//  SUPABASE CLIENT (lightweight)
+// ═══════════════════════════════════════════
+const SB = {
+  headers: {
+    'apikey': CONFIG.SUPABASE_ANON_KEY,
+    'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  },
+  async from(table) {
+    return {
+      select: async (cols='*', filter='') => {
+        const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${table}?select=${cols}${filter}`, { headers: SB.headers });
+        return res.json();
+      },
+      insert: async (data) => {
+        const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${table}`, {
+          method:'POST', headers: SB.headers, body: JSON.stringify(data)
+        });
+        return res.json();
+      },
+      upsert: async (data) => {
+        const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${table}`, {
+          method:'POST',
+          headers: {...SB.headers, 'Prefer': 'resolution=merge-duplicates,return=representation'},
+          body: JSON.stringify(data)
+        });
+        return res.json();
+      },
+      update: async (data, filter) => {
+        const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${table}?${filter}`, {
+          method:'PATCH', headers: SB.headers, body: JSON.stringify(data)
+        });
+        return res.json();
+      }
+    };
+  },
+  async signInWithOAuth(provider) {
+    const url = `${CONFIG.SUPABASE_URL}/auth/v1/authorize?provider=${provider}&redirect_to=${encodeURIComponent(window.location.origin)}`;
+    window.location.href = url;
+  },
+  async signInWithOtp(email) {
+    const res = await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/otp`, {
+      method:'POST',
+      headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    return res.json();
+  }
+};
+
+// ═══════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════
+const COLS = 8, ROWS = 8;
+const GEMS = ['r','b','g','y','p','c'];
+const GEM_COLORS = { r:'#ef4444',b:'#3b82f6',g:'#22c55e',y:'#eab308',p:'#a855f7',c:'#06b6d4' };
+const GEM_SYMBOLS = { r:'♦',b:'●',g:'▲',y:'★',p:'◆',c:'✦' };
+const CB_SHAPES = { r:'▪',b:'●',g:'▲',y:'★',p:'◆',c:'✦' };
+
+let G = {
+  board: [],
+  selected: null,
+  score: 0, best: 0, level: 1,
+  moves: 20, lives: 5, streak: 0,
+  target: 500, hintsLeft: 3,
+  comboChain: 0, busy: false, active: false,
+  user: null,
+  settings: { sound:true, haptic:true, colorblind:false, particles:true, motion:false },
+  dragStart: null, dragging: false,
+};
+
+// ═══════════════════════════════════════════
+//  AUDIO ENGINE
+// ═══════════════════════════════════════════
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function playTone(freq, type='sine', dur=0.15, vol=0.3, delay=0) {
+  if (!G.settings.sound) return;
+  try {
+    const ac = getAudio();
+    const o = ac.createOscillator();
+    const g = ac.createGain();
+    o.connect(g); g.connect(ac.destination);
+    o.type = type; o.frequency.value = freq;
+    const t = ac.currentTime + delay;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.start(t); o.stop(t + dur);
+  } catch(e){}
+}
+function playMatch(gemType) {
+  const freqs = { r:523,b:659,g:784,y:880,p:698,c:988 };
+  playTone(freqs[gemType]||523, 'sine', 0.2, 0.25);
+}
+function playCombo(n) {
+  const notes = [523,659,784,1047,1319];
+  notes.slice(0,Math.min(n,5)).forEach((f,i) => playTone(f,'triangle',0.2,0.3,i*0.08));
+}
+function playPowerGem() {
+  [523,659,784,1047].forEach((f,i)=>playTone(f,'sawtooth',0.15,0.2,i*0.05));
+}
+function playInvalid() { playTone(200,'sawtooth',0.1,0.2); }
+function playWin() { [523,659,784,1047,1319,1568].forEach((f,i)=>playTone(f,'sine',0.3,0.25,i*0.1)); }
+function playLose() { [400,300,200].forEach((f,i)=>playTone(f,'sawtooth',0.4,0.3,i*0.15)); }
+
+// ═══════════════════════════════════════════
+//  HAPTICS
+// ═══════════════════════════════════════════
+function haptic(pattern) {
+  if (!G.settings.haptic || !navigator.vibrate) return;
+  navigator.vibrate(pattern);
+}
+
+// ═══════════════════════════════════════════
+//  STARS BACKGROUND
+// ═══════════════════════════════════════════
+(function initStars() {
+  const canvas = document.getElementById('stars-canvas');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    stars = Array.from({length:120}, () => ({
+      x: Math.random()*canvas.width, y: Math.random()*canvas.height,
+      r: Math.random()*1.5+0.2, speed: Math.random()*0.15+0.05,
+      bright: Math.random()
+    }));
+  }
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s => {
+      s.y += s.speed;
+      if (s.y > canvas.height) { s.y=0; s.x=Math.random()*canvas.width; }
+      const a = 0.2 + 0.6*s.bright + 0.2*Math.sin(Date.now()/1000+s.x);
+      ctx.fillStyle = `rgba(220,210,255,${a})`;
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); draw();
+  window.addEventListener('resize', resize);
+})();
+
+// ═══════════════════════════════════════════
+//  BOARD CREATION
+// ═══════════════════════════════════════════
+function makeGem(type) {
+  return { type, power:false, bomb:false };
+}
+function randomType(r, c, board) {
+  const types = [...GEMS];
+  // Shuffle to avoid initial matches
+  for (let i=types.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [types[i],types[j]]=[types[j],types[i]];
+  }
+  for (const t of types) {
+    if (
+      !(c>=2 && board[r][c-1]?.type===t && board[r][c-2]?.type===t) &&
+      !(r>=2 && board[r-1]?.[c]?.type===t && board[r-2]?.[c]?.type===t)
+    ) return t;
+  }
+  return types[0];
+}
+function createBoard() {
+  G.board = [];
+  for (let r=0;r<ROWS;r++) {
+    G.board[r]=[];
+    for (let c=0;c<COLS;c++) {
+      G.board[r][c] = makeGem(randomType(r,c,G.board));
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════
+function renderBoard() {
+  const board = document.getElementById('board-inner');
+  board.innerHTML = '';
+  for (let r=0;r<ROWS;r++) {
+    for (let c=0;c<COLS;c++) {
+      const gem = G.board[r][c];
+      if (!gem) { board.appendChild(document.createElement('div')); continue; }
+      const el = document.createElement('div');
+      el.className = `gem gem-${gem.type}${gem.power?' power-gem':''}${gem.bomb?' bomb-gem':''}`;
+      el.dataset.r = r; el.dataset.c = c;
+      el.textContent = gem.bomb ? '💣' : GEM_SYMBOLS[gem.type];
+      // Colorblind shape
+      const cb = document.createElement('span');
+      cb.className = 'cb-shape';
+      cb.textContent = CB_SHAPES[gem.type];
+      el.appendChild(cb);
+      // Events
+      el.addEventListener('pointerdown', e => onPointerDown(e, r, c));
+      el.addEventListener('pointerup', e => onPointerUp(e, r, c));
+      el.addEventListener('pointermove', e => onPointerMove(e, r, c));
+      board.appendChild(el);
+    }
+  }
+}
+function getGemEl(r, c) {
+  return document.querySelector(`#board-inner .gem[data-r="${r}"][data-c="${c}"]`);
+}
+function updateUI() {
+  document.getElementById('score-el').textContent = G.score.toLocaleString();
+  document.getElementById('best-el').textContent = G.best.toLocaleString();
+  document.getElementById('level-el').textContent = G.level;
+  document.getElementById('target-el').textContent = G.target.toLocaleString();
+  document.getElementById('moves-num').textContent = G.moves;
+  document.getElementById('moves-num').classList.toggle('low', G.moves <= 5);
+  document.getElementById('streak-count').textContent = G.streak;
+  document.getElementById('hint-count').textContent = `${G.hintsLeft} left`;
+  // Progress bar
+  const pct = Math.min(100, (G.score / G.target) * 100);
+  document.getElementById('prog-bar-fill').style.width = pct + '%';
+  // Lives
+  for (let i=1;i<=5;i++) {
+    document.getElementById(`h${i}`).classList.toggle('empty', i > G.lives);
+  }
+}
+
+// ═══════════════════════════════════════════
+//  INPUT — POINTER (touch + mouse unified)
+// ═══════════════════════════════════════════
+function onPointerDown(e, r, c) {
+  if (!G.active || G.busy) return;
+  e.preventDefault();
+  G.dragStart = { r, c, x: e.clientX, y: e.clientY };
+  G.dragging = false;
+}
+function onPointerMove(e, r, c) {
+  if (!G.dragStart || G.busy) return;
+  const dx = e.clientX - G.dragStart.x;
+  const dy = e.clientY - G.dragStart.y;
+  if (Math.hypot(dx, dy) > 18 && !G.dragging) {
+    G.dragging = true;
+    // Determine direction
+    const absDx = Math.abs(dx), absDy = Math.abs(dy);
+    let tr = G.dragStart.r, tc = G.dragStart.c;
+    if (absDx > absDy) tc += dx > 0 ? 1 : -1;
+    else tr += dy > 0 ? 1 : -1;
+    if (tr>=0&&tr<ROWS&&tc>=0&&tc<COLS) {
+      G.dragStart = null;
+      executeSwap(G.dragStart?.r ?? r, G.dragStart?.c ?? c, tr, tc);
+      // Use the stored start
+    }
+  }
+}
+function onPointerUp(e, r, c) {
+  if (!G.active || G.busy) return;
+  if (G.dragging) { G.dragStart=null; G.dragging=false; return; }
+  if (!G.dragStart) return;
+  G.dragStart = null;
+  // Tap-to-swap
+  if (G.selected === null) {
+    G.selected = {r, c};
+    getGemEl(r,c)?.classList.add('selected');
+    playTone(440,'sine',0.08,0.15);
+    haptic(20);
+  } else {
+    const {r:sr, c:sc} = G.selected;
+    getGemEl(sr,sc)?.classList.remove('selected');
+    if (sr===r && sc===c) { G.selected=null; return; }
+    G.selected = null;
+    const dr=Math.abs(r-sr), dc=Math.abs(c-sc);
+    if (dr+dc===1) executeSwap(sr,sc,r,c);
+    else {
+      G.selected = {r,c};
+      getGemEl(r,c)?.classList.add('selected');
+    }
+  }
+}
+
+// Keyboard support
+document.addEventListener('keydown', e => {
+  if (!G.active || G.busy) return;
+  if (!G.cursor) G.cursor = {r:3,c:3};
+  const {r,c} = G.cursor;
+  let nr=r, nc=c;
+  if (e.key==='ArrowUp'||e.key==='w'||e.key==='W') nr--;
+  else if (e.key==='ArrowDown'||e.key==='s'||e.key==='S') nr++;
+  else if (e.key==='ArrowLeft'||e.key==='a'||e.key==='A') nc--;
+  else if (e.key==='ArrowRight'||e.key==='d'||e.key==='D') nc++;
+  else if (e.key===' '||e.key==='Enter') {
+    e.preventDefault();
+    if (G.selected) {
+      const {r:sr,c:sc}=G.selected;
+      getGemEl(sr,sc)?.classList.remove('selected');
+      G.selected=null;
+      if (Math.abs(sr-r)+Math.abs(sc-c)===1) executeSwap(sr,sc,r,c);
+    } else {
+      G.selected={r,c};
+      getGemEl(r,c)?.classList.add('selected');
+    }
+    return;
+  } else if (e.key==='h'||e.key==='H') { requestHint(); return; }
+  else return;
+  e.preventDefault();
+  nr=Math.max(0,Math.min(ROWS-1,nr));
+  nc=Math.max(0,Math.min(COLS-1,nc));
+  // Clear old cursor highlight
+  document.querySelectorAll('.gem.keyboard-cursor').forEach(el=>el.classList.remove('keyboard-cursor'));
+  G.cursor={r:nr,c:nc};
+  const el=getGemEl(nr,nc);
+  if(el){el.classList.add('keyboard-cursor');el.style.outline='2px solid rgba(245,200,66,0.6)';}
+});
+
+// ═══════════════════════════════════════════
+//  SWAP LOGIC
+// ═══════════════════════════════════════════
+async function executeSwap(r1,c1,r2,c2) {
+  if (r2<0||r2>=ROWS||c2<0||c2>=COLS) return;
+  G.busy = true;
+  // Swap
+  [G.board[r1][c1], G.board[r2][c2]] = [G.board[r2][c2], G.board[r1][c1]];
+  renderBoard();
+  const matches = findMatches();
+  if (!matches.length) {
+    [G.board[r1][c1], G.board[r2][c2]] = [G.board[r2][c2], G.board[r1][c1]];
+    renderBoard();
+    // Shake both
+    getGemEl(r1,c1)?.classList.add('invalid');
+    getGemEl(r2,c2)?.classList.add('invalid');
+    setTimeout(()=>{
+      getGemEl(r1,c1)?.classList.remove('invalid');
+      getGemEl(r2,c2)?.classList.remove('invalid');
+    },350);
+    playInvalid(); haptic([40,20,40]);
+    G.busy = false; return;
+  }
+  G.moves--;
+  G.comboChain = 0;
+  updateUI();
+  await processMatches();
+  checkEndCondition();
+  G.busy = false;
+}
+
+// ═══════════════════════════════════════════
+//  MATCH FINDING
+// ═══════════════════════════════════════════
+function findMatches() {
+  const matched = new Set();
+  // Horizontal
+  for (let r=0;r<ROWS;r++) {
+    let run=[0];
+    for (let c=1;c<=COLS;c++) {
+      if (c<COLS && G.board[r][c]?.type===G.board[r][run[0]]?.type && G.board[r][c]) {
+        run.push(c);
+      } else {
+        if (run.length>=3) run.forEach(cc=>matched.add(`${r},${cc}`));
+        run=[c];
+      }
+    }
+  }
+  // Vertical
+  for (let c=0;c<COLS;c++) {
+    let run=[0];
+    for (let r=1;r<=ROWS;r++) {
+      if (r<ROWS && G.board[r]?.[c]?.type===G.board[run[0]]?.[c]?.type && G.board[r]?.[c]) {
+        run.push(r);
+      } else {
+        if (run.length>=3) run.forEach(rr=>matched.add(`${rr},${c}`));
+        run=[r];
+      }
+    }
+  }
+  return [...matched].map(k=>{const[r,c]=k.split(',').map(Number);return{r,c};});
+}
+
+// ═══════════════════════════════════════════
+//  PROCESS MATCHES (cascade)
+// ═══════════════════════════════════════════
+async function processMatches() {
+  let matches = findMatches();
+  while (matches.length) {
+    G.comboChain++;
+    if (G.comboChain > 1) showComboPopup(G.comboChain);
+
+    // Score
+    const pts = matches.length * 10 * (G.comboChain > 1 ? G.comboChain : 1) * G.level;
+    addScore(pts, matches[0]);
+    playCombo(Math.min(G.comboChain, 5));
+    haptic(G.comboChain > 2 ? [50,20,50] : 30);
+
+    // Group for power detection
+    const grouped = groupByType(matches);
+
+    // Power gem effects
+    const toRemove = new Set(matches.map(m=>`${m.r},${m.c}`));
+    matches.forEach(({r,c}) => {
+      const gem = G.board[r][c];
+      if (gem?.bomb) {
+        for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) {
+          const nr=r+dr,nc=c+dc;
+          if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS) toRemove.add(`${nr},${nc}`);
+        }
+        document.getElementById('app').classList.add('shake');
+        setTimeout(()=>document.getElementById('app').classList.remove('shake'),350);
+        haptic([80,30,80,30,80]);
+      }
+      if (gem?.power) {
+        for(let i=0;i<ROWS;i++) for(let j=0;j<COLS;j++)
+          if(G.board[i][j]?.type===gem.type) toRemove.add(`${i},${j}`);
+        playPowerGem();
+      }
+    });
+
+    // Animate out
+    const matchArr = [...toRemove].map(k=>{const[r,c]=k.split(',').map(Number);return{r,c};});
+    matchArr.forEach(({r,c})=>{
+      const el=getGemEl(r,c);
+      if(el) {
+        el.classList.add('matched');
+        if (G.settings.particles) spawnParticles(el, G.board[r][c]?.type||'r');
+        playMatch(G.board[r][c]?.type||'r');
+      }
+    });
+    await sleep(320);
+
+    // Determine power spawns
+    const powerSpawns = [];
+    grouped.forEach(group => {
+      const len = group.length;
+      if (len >= 5) powerSpawns.push({...group[2], isBomb:true});
+      else if (len === 4) powerSpawns.push({...group[1], isPower:true, type:G.board[group[0].r][group[0].c]?.type});
+    });
+
+    // Remove
+    toRemove.forEach(k=>{
+      const[r,c]=k.split(',').map(Number);
+      G.board[r][c]=null;
+    });
+
+    // Place power spawns
+    powerSpawns.forEach(({r,c,isBomb,isPower,type})=>{
+      const t = type || G.board[r]?.[c]?.type || GEMS[0];
+      G.board[r][c] = { type:t, power:!!isPower, bomb:!!isBomb };
+    });
+
+    // Gravity
+    applyGravity();
+    fillEmpties();
+    renderBoard();
+    await sleep(300);
+    matches = findMatches();
+  }
+}
+function groupByType(matches) {
+  const visited = new Set();
+  const groups = [];
+  matches.forEach(m => {
+    const key=`${m.r},${m.c}`;
+    if(visited.has(key)) return;
+    const group=[]; const queue=[m];
+    while(queue.length){
+      const cur=queue.shift(); const k=`${cur.r},${cur.c}`;
+      if(visited.has(k)) continue;
+      visited.add(k); group.push(cur);
+      matches.filter(n=>Math.abs(n.r-cur.r)+Math.abs(n.c-cur.c)===1&&!visited.has(`${n.r},${n.c}`)).forEach(n=>queue.push(n));
+    }
+    groups.push(group);
+  });
+  return groups;
+}
+function applyGravity() {
+  for(let c=0;c<COLS;c++) {
+    let empty=0;
+    for(let r=ROWS-1;r>=0;r--) {
+      if(!G.board[r][c]) empty++;
+      else if(empty>0){G.board[r+empty][c]=G.board[r][c];G.board[r][c]=null;}
+    }
+  }
+}
+function fillEmpties() {
+  for(let r=0;r<ROWS;r++)
+    for(let c=0;c<COLS;c++)
+      if(!G.board[r][c]) G.board[r][c]=makeGem(GEMS[Math.floor(Math.random()*GEMS.length)]);
+}
+
+// ═══════════════════════════════════════════
+//  SCORE + FEEDBACK
+// ═══════════════════════════════════════════
+function addScore(pts, gem) {
+  G.score += pts;
+  if (G.score > G.best) G.best = G.score;
+  updateUI();
+  // Floating score
+  const el = getGemEl(gem.r, gem.c);
+  if (el && G.settings.particles) {
+    const rect = el.getBoundingClientRect();
+    const f = document.createElement('div');
+    f.className = 'score-float';
+    f.textContent = `+${pts}`;
+    f.style.cssText = `left:${rect.left}px;top:${rect.top}px;color:${GEM_COLORS[G.board[gem.r]?.[gem.c]?.type]||'#a855f7'}`;
+    document.body.appendChild(f);
+    setTimeout(()=>f.remove(), 1000);
+  }
+}
+function spawnParticles(el, type) {
+  if(!G.settings.particles) return;
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
+  const color = GEM_COLORS[type] || '#a855f7';
+  for(let i=0;i<10;i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const angle=Math.random()*Math.PI*2, dist=25+Math.random()*45;
+    p.style.cssText=`
+      width:${3+Math.random()*4}px;height:${3+Math.random()*4}px;
+      background:${color};left:${cx}px;top:${cy}px;
+      --tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;
+    `;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),750);
+  }
+}
+function showComboPopup(n) {
+  document.getElementById('combo-popup')?.remove();
+  const labels=['','','DOUBLE!','TRIPLE!','MEGA!','ULTRA!','LEGENDARY!'];
+  const el=document.createElement('div');
+  el.id='combo-popup';
+  el.textContent=n<labels.length?labels[n]:`×${n} COMBO!`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),900);
+}
+
+// ═══════════════════════════════════════════
+//  GAME FLOW
+// ═══════════════════════════════════════════
+function startGame() {
+  closeAllOverlays();
+  G.score=0; G.moves=20+Math.floor((G.level-1)*1.5);
+  G.comboChain=0; G.active=true; G.selected=null; G.busy=false;
+  G.target=Math.floor(500*Math.pow(1.4,G.level-1));
+  G.hintsLeft=3;
+  createBoard();
+  renderBoard();
+  updateUI();
+  loadSavedData();
+  // Wake lock
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').catch(()=>{});
+  }
+}
+function checkEndCondition() {
+  if (G.score >= G.target) { levelComplete(); return; }
+  if (G.moves <= 0) { gameFail(); return; }
+}
+function levelComplete() {
+  G.active=false;
+  playWin(); haptic([100,50,100,50,200]);
+  const stars = G.score>=G.target*1.6?3:G.score>=G.target*1.2?2:1;
+  document.getElementById('win-title').textContent = `Level ${G.level} Complete!`;
+  document.getElementById('win-stars').textContent = '⭐'.repeat(stars);
+  document.getElementById('win-score').textContent = G.score.toLocaleString();
+  G.streak++;
+  document.getElementById('streak-count').textContent = G.streak;
+  saveProgress();
+  openOverlay('overlay-win');
+}
+function gameFail() {
+  G.active=false;
+  playLose(); haptic([200,100,200]);
+  G.lives=Math.max(0,G.lives-1);
+  G.streak=0;
+  document.getElementById('lose-score').textContent = G.score.toLocaleString();
+  const diff = G.target - G.score;
+  document.getElementById('lose-sub').textContent = diff<100?'SO CLOSE!':diff<300?'KEEP TRYING!':'PRACTICE MORE!';
+  updateUI();
+  openOverlay('overlay-lose');
+}
+function nextLevel() {
+  G.level++;
+  startGame();
+}
+
+// ═══════════════════════════════════════════
+//  HINT SYSTEM (GROQ)
+// ═══════════════════════════════════════════
+async function requestHint() {
+  if (!G.active || G.busy || G.hintsLeft <= 0) {
+    if(G.hintsLeft<=0) showToast('No hints left for this level!');
+    return;
+  }
+  G.hintsLeft--;
+  updateUI();
+  showSage('Consulting the crystal oracle...', true);
+  try {
+    const boardStr = G.board.map(row=>row.map(g=>g?g.type:'_').join('')).join('\n');
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:'POST',
+      headers:{ 'Authorization':`Bearer ${CONFIG.GROQ_KEY}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        model:'llama-3.1-8b-instant',
+        max_tokens:120,
+        messages:[{
+          role:'user',
+          content:`You are SAGE, a wise royal advisor in Gem Quest: Crystal Kingdom. 
+Board (8x8, gems: r=red,b=blue,g=green,y=yellow,p=purple,c=cyan):
+${boardStr}
+Moves left: ${G.moves}. Score: ${G.score}/${G.target}.
+Give a SHORT hint (max 2 sentences) about the best move. Be mystical and royal. Mention gem colors and direction.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const msg = data.choices?.[0]?.message?.content || findBestMoveHint();
+    showSage(msg);
+    highlightBestMove();
+  } catch(e) {
+    showSage(findBestMoveHint());
+    highlightBestMove();
+  }
+}
+function findBestMoveHint() {
+  // Find first valid move
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const neighbors=[{r,c:c+1},{r:r+1,c}];
+    for(const n of neighbors) {
+      if(n.r>=ROWS||n.c>=COLS) continue;
+      [G.board[r][c],G.board[n.r][n.c]]=[G.board[n.r][n.c],G.board[r][c]];
+      const m=findMatches().length;
+      [G.board[r][c],G.board[n.r][n.c]]=[G.board[n.r][n.c],G.board[r][c]];
+      if(m>0) return `Your Majesty, the ${G.board[r][c].type==='r'?'red':G.board[r][c].type==='b'?'blue':G.board[r][c].type==='g'?'green':G.board[r][c].type==='y'?'golden':G.board[r][c].type==='p'?'purple':'cyan'} gem at row ${r+1} holds great power. Move it ${n.c>c?'right':'down'}, and the crystals shall align!`;
+    }
+  }
+  return 'The board is challenging, Your Majesty. A shuffle may reveal hidden paths through the crystal maze.';
+}
+function highlightBestMove() {
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const neighbors=[{r,c:c+1},{r:r+1,c}];
+    for(const n of neighbors) {
+      if(n.r>=ROWS||n.c>=COLS) continue;
+      [G.board[r][c],G.board[n.r][n.c]]=[G.board[n.r][n.c],G.board[r][c]];
+      const m=findMatches().length;
+      [G.board[r][c],G.board[n.r][n.c]]=[G.board[n.r][n.c],G.board[r][c]];
+      if(m>0) {
+        getGemEl(r,c)?.classList.add('hint-glow');
+        getGemEl(n.r,n.c)?.classList.add('hint-glow');
+        setTimeout(()=>{
+          getGemEl(r,c)?.classList.remove('hint-glow');
+          getGemEl(n.r,n.c)?.classList.remove('hint-glow');
+        },2400);
+        return;
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+//  SAGE UI
+// ═══════════════════════════════════════════
+let sageVisible = false;
+let sageTimeout = null;
+function showSage(msg, loading=false) {
+  const bubble = document.getElementById('sage-bubble');
+  const loadEl = document.getElementById('sage-loading');
+  bubble.textContent = loading ? '' : msg;
+  loadEl.style.display = loading ? 'block' : 'none';
+  if (!loading) bubble.textContent = msg;
+  bubble.classList.add('visible');
+  sageVisible = true;
+  clearTimeout(sageTimeout);
+  if (!loading) sageTimeout = setTimeout(hideSage, 6000);
+}
+function hideSage() {
+  document.getElementById('sage-bubble').classList.remove('visible');
+  sageVisible = false;
+}
+function toggleSage() {
+  if (sageVisible) hideSage();
+  else showSage("Greetings, Your Majesty! Tap the hint button for my counsel on the crystal board.");
+}
+
+// ═══════════════════════════════════════════
+//  SHUFFLE
+// ═══════════════════════════════════════════
+function shuffleBoard() {
+  if(!G.active||G.busy||G.moves<2) return;
+  G.moves-=2; updateUI();
+  const flat=G.board.flat().filter(Boolean);
+  for(let i=flat.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [flat[i],flat[j]]=[flat[j],flat[i]];
+  }
+  let k=0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) G.board[r][c]=flat[k++];
+  renderBoard();
+  showToast('Board shuffled! -2 moves');
+  haptic(50);
+}
+
+// ═══════════════════════════════════════════
+//  GEMINI LEVEL GENERATION
+// ═══════════════════════════════════════════
+async function generateLevelsWithGemini(startLevel) {
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${CONFIG.GEMINI_KEY}`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        contents:[{parts:[{text:`Generate 10 match-3 game levels for "Gem Quest: Crystal Kingdom" as a JSON array.
+Level numbers: ${startLevel} to ${startLevel+9}.
+Gem types: r(red), b(blue), g(green), y(yellow), p(purple), c(cyan).
+Each level: { level_number, target_score, moves_allowed, difficulty(1-10), tip(short SAGE hint) }
+target_score increases ~40% per level from base 500.
+moves_allowed: 15-25 depending on difficulty.
+Return ONLY valid JSON array, no markdown.`}]}]
+      })
+    });
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+    const clean = text.replace(/```json|```/g,'').trim();
+    const levels = JSON.parse(clean);
+    // Cache in IndexedDB
+    levels.forEach(lv => cacheLevel(lv));
+    return levels;
+  } catch(e) {
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════
+//  INDEXEDDB — OFFLINE CACHE
+// ═══════════════════════════════════════════
+let db = null;
+async function initDB() {
+  return new Promise((resolve,reject) => {
+    const req = indexedDB.open('GemQuestDB', 1);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('levels')) d.createObjectStore('levels',{keyPath:'level_number'});
+      if(!d.objectStoreNames.contains('progress')) d.createObjectStore('progress',{keyPath:'key'});
+    };
+    req.onsuccess = e => { db=e.target.result; resolve(db); };
+    req.onerror = reject;
+  });
+}
+async function cacheLevel(lv) {
+  if(!db) return;
+  const tx=db.transaction('levels','readwrite');
+  tx.objectStore('levels').put(lv);
+}
+async function getCachedLevel(num) {
+  if(!db) return null;
+  return new Promise(resolve=>{
+    const tx=db.transaction('levels','readonly');
+    const req=tx.objectStore('levels').get(num);
+    req.onsuccess=()=>resolve(req.result||null);
+    req.onerror=()=>resolve(null);
+  });
+}
+async function saveProgress() {
+  if(!db) return;
+  const data={key:'progress',score:G.score,best:G.best,level:G.level,streak:G.streak,lives:G.lives};
+  const tx=db.transaction('progress','readwrite');
+  tx.objectStore('progress').put(data);
+  // Also save to Supabase if logged in
+  if(G.user) {
+    try {
+      const sb = await SB.from('profiles');
+      await sb.upsert({id:G.user.id,total_score:G.best,current_level:G.level,streak_count:G.streak,lives:G.lives});
+      await SB.from('leaderboard').then(sb=>sb.upsert({user_id:G.user.id,username:G.user.email?.split('@')[0]||'Adventurer',score:G.best,level_reached:G.level}));
+    } catch(e){}
+  }
+}
+async function loadSavedData() {
+  if(!db) return;
+  return new Promise(resolve=>{
+    const tx=db.transaction('progress','readonly');
+    const req=tx.objectStore('progress').get('progress');
+    req.onsuccess=()=>{
+      const d=req.result;
+      if(d){ G.best=d.best||0; G.streak=d.streak||0; G.lives=d.lives||5; updateUI(); }
+      resolve();
+    };
+    req.onerror=()=>resolve();
+  });
+}
+
+// ═══════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════
+function openAuth() { openOverlay('overlay-auth'); }
+async function signInDiscord() {
+  await SB.signInWithOAuth('discord');
+}
+async function signInMagicLink() {
+  const email=document.getElementById('auth-email').value.trim();
+  const msg=document.getElementById('auth-msg');
+  if(!email||!email.includes('@')) { msg.textContent='Please enter a valid email.'; msg.className='auth-msg error'; return; }
+  msg.textContent='Sending magic link...'; msg.className='auth-msg';
+  try {
+    await SB.signInWithOtp(email);
+    msg.textContent='✓ Magic link sent! Check your email.'; msg.className='auth-msg success';
+  } catch(e) {
+    msg.textContent='Something went wrong. Try again.'; msg.className='auth-msg error';
+  }
+}
+
+// ═══════════════════════════════════════════
+//  LEADERBOARD
+// ═══════════════════════════════════════════
+async function openLeaderboard() {
+  openOverlay('overlay-lb');
+  const list=document.getElementById('lb-list');
+  list.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px">Loading...</div>';
+  try {
+    const sb=await SB.from('leaderboard');
+    const data=await sb.select('username,score,level_reached','&order=score.desc&limit=20');
+    if(!data||!data.length){list.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px">No scores yet. Be the first!</div>';return;}
+    list.innerHTML=data.map((row,i)=>`
+      <div class="lb-row${G.user&&row.username===G.user.email?.split('@')[0]?' me':''}">
+        <span class="lb-rank">${i===0?'👑':i===1?'🥈':i===2?'🥉':i+1}</span>
+        <span class="lb-name">${row.username||'Adventurer'}</span>
+        <span class="lb-score">${(row.score||0).toLocaleString()}</span>
+      </div>
+    `).join('');
+  } catch(e) {
+    list.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px">Could not load leaderboard.</div>';
+  }
+}
+
+// ═══════════════════════════════════════════
+//  SETTINGS
+// ═══════════════════════════════════════════
+function openSettings() { openOverlay('overlay-settings'); loadSettingsUI(); }
+function loadSettingsUI() {
+  Object.keys(G.settings).forEach(k=>{
+    const btn=document.getElementById(`toggle-${k}`);
+    if(btn){ btn.classList.toggle('on',G.settings[k]); }
+  });
+}
+function toggleSetting(key) {
+  G.settings[key]=!G.settings[key];
+  const btn=document.getElementById(`toggle-${key}`);
+  if(btn) btn.classList.toggle('on',G.settings[key]);
+  if(key==='colorblind') document.body.classList.toggle('colorblind',G.settings[key]);
+  localStorage.setItem('gq-settings',JSON.stringify(G.settings));
+  haptic(20);
+}
+function loadSettings() {
+  try {
+    const s=JSON.parse(localStorage.getItem('gq-settings')||'{}');
+    Object.assign(G.settings,s);
+    if(G.settings.colorblind) document.body.classList.add('colorblind');
+  } catch(e){}
+}
+
+// ═══════════════════════════════════════════
+//  OVERLAYS
+// ═══════════════════════════════════════════
+function openOverlay(id) {
+  closeAllOverlays();
+  document.getElementById(id)?.classList.remove('hidden');
+}
+function closeOverlay(id) { document.getElementById(id)?.classList.add('hidden'); }
+function closeAllOverlays() {
+  document.querySelectorAll('.overlay').forEach(o=>o.classList.add('hidden'));
+}
+
+// ═══════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════
+let toastTimeout;
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ═══════════════════════════════════════════
+//  PUSH NOTIFICATIONS
+// ═══════════════════════════════════════════
+async function requestNotifications() {
+  if(!('Notification' in window)) return;
+  if(Notification.permission==='default') {
+    await Notification.requestPermission();
+  }
+}
+function scheduleLifeNotification() {
+  if(Notification.permission!=='granted') return;
+  setTimeout(()=>{
+    if(G.lives<5) {
+      new Notification('💎 Gem Quest: Crystal Kingdom',{
+        body:'Your lives have been restored, Your Majesty! Return to your quest!',
+        icon:'icons/icon-192.png'
+      });
+    }
+  }, 30*60*1000); // 30 min
+}
+
+// ═══════════════════════════════════════════
+//  SERVICE WORKER REGISTRATION
+// ═══════════════════════════════════════════
+if('serviceWorker' in navigator) {
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+// PWA Install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e=>{
+  e.preventDefault(); deferredPrompt=e;
+  setTimeout(()=>{
+    if(deferredPrompt) showToast('💎 Install Gem Quest as an app!');
+  }, 30000);
+});
+
+// ═══════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+async function init() {
+  loadSettings();
+  await initDB();
+  await loadSavedData();
+  openOverlay('overlay-splash');
+  // Pre-generate levels with Gemini
+  const cached=await getCachedLevel(1);
+  if(!cached) generateLevelsWithGemini(1);
+  // Request notifications after delay
+  setTimeout(requestNotifications, 10000);
+}
+init();
+</script>
 </body>
 </html>
